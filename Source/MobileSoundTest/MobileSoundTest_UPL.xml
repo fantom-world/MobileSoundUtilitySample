@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<!-- Enable log output when creating APKs -->
+	<trace enable="true"/>
+	<dumpvars/>
+
+	<init>
+		<!-- Output log when creating APK -->
+		<log text="MobileSoundTest init"/>
+	</init>
+
+	<androidManifestUpdates>
+		<addElements tag="application">
+			<receiver android:name="com.epicgames.unreal.AudioVolumeReceiver" android:exported="true" />
+		</addElements>
+	</androidManifestUpdates>
+
+	<!-- optional additions to proguard -->
+	<proguardAdditions>
+		<insert>
+			-keepclassmembers public class com.epicgames.ue4.GameActivity{
+			*;
+			}
+			-keep class com.epicgames.unreal.AudioVolumeReceiver{
+			*;
+			}
+		</insert>
+	</proguardAdditions>
+
+
+	<!-- optional files or directories to copy to Intermediate/Android/APK -->
+	<resourceCopies>
+		<copyDir src="$S(ProjectDir)/Source/MobileSoundTest/ThirdParty/Android/Java" dst="$S(BuildDir)" />
+	</resourceCopies>
+
+
+	<!-- optional additions to the GameActivity imports in GameActivity.java -->
+	<gameActivityImportAdditions>
+		<insert>
+			import com.epicgames.unreal.AudioVolumeReceiver;
+		</insert>
+	</gameActivityImportAdditions>
+		
+	<!-- optional additions to the GameActivity class in GameActivity.java -->
+	<gameActivityClassAdditions>
+		<insert>
+			public void AndroidThunkJava_EnableAudioVolumeReceiver(boolean IsEnabled)
+			{
+			if(IsEnabled)
+			{
+			AudioVolumeReceiver.startReceiver(this);
+			}else
+			{
+			AudioVolumeReceiver.stopReceiver(this);
+			}
+			}
+		</insert>
+	</gameActivityClassAdditions>
+</root>
