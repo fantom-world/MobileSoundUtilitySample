@@ -85,7 +85,7 @@ void AMobileSoundUtility::BeginPlay()
 #if PLATFORM_ANDROID
 	BindAudioStateChangedAndroid();
 #elif PLATFORM_IOS 
-	OnAudioMuteIosDelegateHandle = FCoreDelegates::AudioMuteDelegate.AddStatic(&AGettingSoundVolumeTest::OnAudioMuteIos);
+	OnAudioMuteIosDelegateHandle = FCoreDelegates::AudioMuteDelegate.AddStatic(&AMobileSoundUtility::OnAudioStateChangedIos);
 #endif
 
 }
