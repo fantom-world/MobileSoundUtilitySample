@@ -12,6 +12,7 @@
 #include "IOS/IOSAppDelegate.h"
 #include "IOS/IOSAsyncTask.h"
 #import <AVFoundation/AVFoundation.h>
+#include <AVFoundation/AVAudioSession.h>
 
 #if USE_MUTE_SWITCH_DETECTION
 #include "SharkfoodMuteSwitchDetector.h"
@@ -47,7 +48,7 @@ void AMobileSoundUtility::PrintMobileVolume()
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("SystemSoundVolume is %i %%"), volume));
 	
 #endif
-#if PLATFORM_ANDROID
+#if PLATFORM_ANDROID || PLATFORM_IOS 
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("FinalSystemSoundVolume is %i %%"), GetFinalMobileVolume()));
 #endif
 }
@@ -77,6 +78,19 @@ bool AMobileSoundUtility::GetIsExternalAudioDevicesConnected()
 		jmethodID GetIsExternalAudioDevicesConnectedMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_GetIsExternalAudioDevicesConnected", "()Z", false);
 		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, GetIsExternalAudioDevicesConnectedMethod);
 	}
+#elif PLATFORM_IOS
+	if (AVAudioSessionRouteDescription* CurrentRoute = [[AVAudioSession sharedInstance]currentRoute] )
+	{
+		for (AVAudioSessionPortDescription* Port in[CurrentRoute outputs])
+		{
+			if ([[Port portType]isEqualToString:AVAudioSessionPortBuiltInReceiver]
+				|| [[Port portType]isEqualToString:AVAudioSessionPortBuiltInSpeaker] )
+			{
+				return false;
+			}
+		}
+	}
+	return true;
 #endif
 	return false;
 }
