@@ -12,15 +12,9 @@
 #include "IOS/IOSAppDelegate.h"
 #include "IOS/IOSAsyncTask.h"
 #import <AVFoundation/AVFoundation.h>
-#include <AVFoundation/AVAudioSession.h>
-
-#if USE_MUTE_SWITCH_DETECTION
-#include "SharkfoodMuteSwitchDetector.h"
-#include "SharkfoodMuteSwitchDetector.m"
-#endif
+#include "IOS/IOSAppDelegate.h"
 
 #endif
-
 
 
 int AMobileSoundUtility::GetMobileVolume()
@@ -34,7 +28,7 @@ int AMobileSoundUtility::GetMobileVolume()
 int AMobileSoundUtility::GetFinalMobileVolume()
 {
 	//Mute状態かつ外部出力デバイスが接続されていないときは音はでないので0を返す
-	if (GetIsMuted() && !GetIsExternalAudioDevicesConnected())
+	if (GetIsMuted() && !GetAreHeadphonesPluggedIn())
 	{
 		return 0;		
 	}
@@ -56,7 +50,7 @@ void AMobileSoundUtility::PrintMobileVolume()
 #endif
 #if PLATFORM_ANDROID || PLATFORM_IOS 
 	GetIsMuted() ? GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Mute"))) : GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Not Mute")));
-	GetIsExternalAudioDevicesConnected() ? GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("HeadPhone"))) : GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("InDevice")));
+	GetAreHeadphonesPluggedIn() ? GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("HeadPhone"))) : GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("InDevice")));
 #endif
 }
 
@@ -70,39 +64,17 @@ bool AMobileSoundUtility::GetIsMuted()
 		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, GetIsMutedMethod);
 	}
 #elif PLATFORM_IOS && USE_MUTE_SWITCH_DETECTION
-	SharkfoodMuteSwitchDetector* MuteDetector = [SharkfoodMuteSwitchDetector shared];
-	
-	return MuteDetector.isMute;
+	return [IOSAppDelegate GetDelegate].bLastMutedState;
 #endif
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Failed GetIsMuted")));
 	return false;
+	
 }
 
-bool AMobileSoundUtility::GetIsExternalAudioDevicesConnected()
+bool AMobileSoundUtility::GetAreHeadphonesPluggedIn()
 {
-#if PLATFORM_ANDROID	
-	JNIEnv* Env = FAndroidApplication::GetJavaEnv();
-	if (nullptr != Env)
-	{
-		jmethodID GetIsExternalAudioDevicesConnectedMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_GetIsExternalAudioDevicesConnected", "()Z", false);
-		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, GetIsExternalAudioDevicesConnectedMethod);
-	}
-#elif PLATFORM_IOS
-	//現在のオーディオ ルートの出力ポートを取得しそのタイプを確認
-	bool res = true;
-	if (AVAudioSessionRouteDescription* CurrentRoute = [[AVAudioSession sharedInstance]currentRoute] )
-	{
-		for (AVAudioSessionPortDescription* Port in[CurrentRoute outputs])
-		{
-			//内部スピーカーの場合
-			if ([[Port portType]isEqualToString:AVAudioSessionPortBuiltInReceiver]
-				|| [[Port portType]isEqualToString:AVAudioSessionPortBuiltInSpeaker] )
-			{
-				res = false;
-			}
-		}
-	}
-	return res;
+#if PLATFORM_ANDROID || PLATFORM_IOS 
+	return UOptionalMobileFeaturesBPLibrary::AreHeadphonesPluggedIn();
 #endif
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Failed GetIsExternalAudioDevicesConnected")));
 	return false;

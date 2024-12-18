@@ -45,7 +45,7 @@ public:
 
 	//Mobileデバイスの外部出力デバイス接続状態を取得
 	UFUNCTION(BlueprintCallable)
-	bool GetIsExternalAudioDevicesConnected();
+	bool GetAreHeadphonesPluggedIn();
 
 	//IOSデバイスにてミュートスイッチが変更されたことを検出したとき、または音量が変更されたときに呼び出される
 	static void OnAudioStateChangedIos(bool IsMute, int Volume);
