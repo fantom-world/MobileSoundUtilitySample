@@ -58,6 +58,7 @@ public:
 	void BindAudioStateChangedAndroid();
 
 private:
+	//DelegateHandles
 	FDelegateHandle OnAudioMuteIosDelegateHandle;
 	FDelegateHandle OnEnableAudioReceiverAndroidHandle;
 	FDelegateHandle OnDisableAudioReceiverAndroidHandle;

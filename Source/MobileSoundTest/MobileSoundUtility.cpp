@@ -33,6 +33,7 @@ int AMobileSoundUtility::GetMobileVolume()
 
 int AMobileSoundUtility::GetFinalMobileVolume()
 {
+	//Mute状態かつ外部出力デバイスが接続されていないときは音はでないので0を返す
 	if (GetIsMuted() && !GetIsExternalAudioDevicesConnected())
 	{
 		return 0;		
@@ -43,11 +44,13 @@ int AMobileSoundUtility::GetFinalMobileVolume()
 
 void AMobileSoundUtility::PrintMobileVolume()
 {
+	//System音量を表示
 #if PLATFORM_ANDROID || PLATFORM_IOS 
 	int volume = GetMobileVolume();
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("SystemSoundVolume is %i %%"), volume));
 	
 #endif
+	//Mute状態を加味したSystem音量を表示
 #if PLATFORM_ANDROID || PLATFORM_IOS 
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("FinalSystemSoundVolume is %i %%"), GetFinalMobileVolume()));
 #endif
@@ -79,10 +82,12 @@ bool AMobileSoundUtility::GetIsExternalAudioDevicesConnected()
 		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, GetIsExternalAudioDevicesConnectedMethod);
 	}
 #elif PLATFORM_IOS
+	//現在のオーディオ ルートの出力ポートを取得しそのタイプを確認
 	if (AVAudioSessionRouteDescription* CurrentRoute = [[AVAudioSession sharedInstance]currentRoute] )
 	{
 		for (AVAudioSessionPortDescription* Port in[CurrentRoute outputs])
 		{
+			//内部スピーカーの場合
 			if ([[Port portType]isEqualToString:AVAudioSessionPortBuiltInReceiver]
 				|| [[Port portType]isEqualToString:AVAudioSessionPortBuiltInSpeaker] )
 			{
