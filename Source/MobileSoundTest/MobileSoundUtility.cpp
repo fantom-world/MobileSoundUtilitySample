@@ -8,6 +8,19 @@
 #include "Private/OS/Android/com_epicgames_unreal_MobileSoundTestNativeAccess.h"
 #endif
 
+#if PLATFORM_IOS
+#include "IOS/IOSAppDelegate.h"
+#include "IOS/IOSAsyncTask.h"
+#import <AVFoundation/AVFoundation.h>
+
+#if USE_MUTE_SWITCH_DETECTION
+#include "SharkfoodMuteSwitchDetector.h"
+#include "SharkfoodMuteSwitchDetector.m"
+#endif
+
+#endif
+
+
 
 int AMobileSoundUtility::GetMobileVolume()
 {
@@ -17,13 +30,55 @@ int AMobileSoundUtility::GetMobileVolume()
 	return 0;
 }
 
+int AMobileSoundUtility::GetFinalMobileVolume()
+{
+	if (GetIsMuted() && !GetIsExternalAudioDevicesConnected())
+	{
+		return 0;		
+	}
+	return GetMobileVolume();
+}
+
 
 void AMobileSoundUtility::PrintMobileVolume()
 {
 #if PLATFORM_ANDROID || PLATFORM_IOS 
 	int volume = GetMobileVolume();
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("SystemSoundVolume is %i %%"), volume));
+	
 #endif
+#if PLATFORM_ANDROID
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("FinalSystemSoundVolume is %i %%"), GetFinalMobileVolume()));
+#endif
+}
+
+bool AMobileSoundUtility::GetIsMuted()
+{
+#if PLATFORM_ANDROID	
+	JNIEnv* Env = FAndroidApplication::GetJavaEnv();
+	if (nullptr != Env)
+	{
+		jmethodID GetIsMutedMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_GetIsSilentMode", "()Z", false);
+		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, GetIsMutedMethod);
+	}
+#elif PLATFORM_IOS && USE_MUTE_SWITCH_DETECTION
+	SharkfoodMuteSwitchDetector* MuteDetector = [SharkfoodMuteSwitchDetector shared];
+	return MuteDetector.isMute;
+#endif
+	return false;
+}
+
+bool AMobileSoundUtility::GetIsExternalAudioDevicesConnected()
+{
+#if PLATFORM_ANDROID	
+	JNIEnv* Env = FAndroidApplication::GetJavaEnv();
+	if (nullptr != Env)
+	{
+		jmethodID GetIsExternalAudioDevicesConnectedMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_GetIsExternalAudioDevicesConnected", "()Z", false);
+		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, GetIsExternalAudioDevicesConnectedMethod);
+	}
+#endif
+	return false;
 }
 
 void AMobileSoundUtility::OnAudioStateChangedIos(bool IsMute, int Volume)

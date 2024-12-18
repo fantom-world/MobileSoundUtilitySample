@@ -25,13 +25,27 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 public:
 	//Mobileデバイスの音量を取得する 0-100 (%)
-	//Muteのとき、0にならない（Android）
+	//Muteのとき、0にならない
 	UFUNCTION(BlueprintCallable)
 	int GetMobileVolume();
+
+	//Mobileデバイスの音量を取得する 0-100 (%)
+	//Muteのときは0
+	UFUNCTION(BlueprintCallable)
+	int GetFinalMobileVolume();
+
 
 	//Mobileデバイスの音量を表示する
 	UFUNCTION(BlueprintCallable)
 	void PrintMobileVolume();
+
+	//MobileデバイスのMute状態を取得
+	UFUNCTION(BlueprintCallable)
+	bool GetIsMuted();
+
+	//Mobileデバイスの外部出力デバイス接続状態を取得
+	UFUNCTION(BlueprintCallable)
+	bool GetIsExternalAudioDevicesConnected();
 
 	//IOSデバイスにてミュートスイッチが変更されたことを検出したとき、または音量が変更されたときに呼び出される
 	static void OnAudioStateChangedIos(bool IsMute, int Volume);
