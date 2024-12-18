@@ -54,6 +54,10 @@ void AMobileSoundUtility::PrintMobileVolume()
 #if PLATFORM_ANDROID || PLATFORM_IOS 
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("FinalSystemSoundVolume is %i %%"), GetFinalMobileVolume()));
 #endif
+#if PLATFORM_ANDROID || PLATFORM_IOS 
+	GetIsMuted() ? GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Mute"))) : GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Not Mute")));
+	GetIsExternalAudioDevicesConnected() ? GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("HeadPhone"))) : GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("InDevice")));
+#endif
 }
 
 bool AMobileSoundUtility::GetIsMuted()
@@ -67,8 +71,10 @@ bool AMobileSoundUtility::GetIsMuted()
 	}
 #elif PLATFORM_IOS && USE_MUTE_SWITCH_DETECTION
 	SharkfoodMuteSwitchDetector* MuteDetector = [SharkfoodMuteSwitchDetector shared];
+	
 	return MuteDetector.isMute;
 #endif
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Failed GetIsMuted")));
 	return false;
 }
 
@@ -83,6 +89,7 @@ bool AMobileSoundUtility::GetIsExternalAudioDevicesConnected()
 	}
 #elif PLATFORM_IOS
 	//現在のオーディオ ルートの出力ポートを取得しそのタイプを確認
+	bool res = true;
 	if (AVAudioSessionRouteDescription* CurrentRoute = [[AVAudioSession sharedInstance]currentRoute] )
 	{
 		for (AVAudioSessionPortDescription* Port in[CurrentRoute outputs])
@@ -91,12 +98,13 @@ bool AMobileSoundUtility::GetIsExternalAudioDevicesConnected()
 			if ([[Port portType]isEqualToString:AVAudioSessionPortBuiltInReceiver]
 				|| [[Port portType]isEqualToString:AVAudioSessionPortBuiltInSpeaker] )
 			{
-				return false;
+				res = false;
 			}
 		}
 	}
-	return true;
+	return res;
 #endif
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Failed GetIsExternalAudioDevicesConnected")));
 	return false;
 }
 
