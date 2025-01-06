@@ -1,65 +1,77 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#if PLATFORM_ANDROID
-#include "Android/AndroidApplication.h"
-#include "Android/AndroidJNI.h"
-#endif
-
 #include "MobileSoundUtility.generated.h"
 
-//System‰¹—Ê‚ğæ“¾‚·‚éUtilityƒNƒ‰ƒX
+//SysteméŸ³é‡ã‚’å–å¾—ã™ã‚‹Utilityã‚¯ãƒ©ã‚¹
 UCLASS(Blueprintable, BlueprintType)
 class MOBILESOUNDTEST_API AMobileSoundUtility : public AActor
 {
 	GENERATED_BODY()
 
 protected:
-	// ŠJn‚ÌƒCƒxƒ“ƒg
+	// é–‹å§‹æ™‚ã®ã‚¤ãƒ™ãƒ³ãƒˆ
 	virtual void BeginPlay() override;
-
-	// I—¹‚ÌƒCƒxƒ“ƒg
+	// çµ‚äº†æ™‚ã®ã‚¤ãƒ™ãƒ³ãƒˆ
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 public:
-	//MobileƒfƒoƒCƒX‚Ì‰¹—Ê‚ğæ“¾‚·‚é 0-100 (%)
-	//Mute‚Ì‚Æ‚«A0‚É‚È‚ç‚È‚¢
+	//Mobileãƒ‡ãƒã‚¤ã‚¹ã®éŸ³é‡ã‚’å–å¾—ã™ã‚‹ 0-100 (%)
+	//Muteã®ã¨ãã€0ã«ãªã‚‰ãªã„
 	UFUNCTION(BlueprintCallable)
 	int GetMobileVolume();
 
-	//MobileƒfƒoƒCƒX‚Ì‰¹—Ê‚ğæ“¾‚·‚é 0-100 (%)
-	//Mute‚Ì‚Æ‚«‚Í0
-	UFUNCTION(BlueprintCallable)
-	int GetFinalMobileVolume();
-
-
-	//MobileƒfƒoƒCƒX‚Ì‰¹—Ê‚ğ•\¦‚·‚é
+	//Mobileãƒ‡ãƒã‚¤ã‚¹ã®éŸ³é‡ã‚’è¡¨ç¤ºã™ã‚‹
 	UFUNCTION(BlueprintCallable)
 	void PrintMobileVolume();
 
-	//MobileƒfƒoƒCƒX‚ÌMuteó‘Ô‚ğæ“¾
+	//Mobileãƒ‡ãƒã‚¤ã‚¹ã®éŸ³é‡ã‚’å–å¾—ã™ã‚‹ 0-100 (%)
+	//Muteã®ã¨ãã¯0
+	UFUNCTION(BlueprintCallable)
+	int GetFinalMobileVolume();
+
+	//Mobileãƒ‡ãƒã‚¤ã‚¹ã®MuteçŠ¶æ…‹ã‚’å–å¾—
 	UFUNCTION(BlueprintCallable)
 	bool GetIsMuted();
 
-	//MobileƒfƒoƒCƒX‚ÌŠO•”o—ÍƒfƒoƒCƒXÚ‘±ó‘Ô‚ğæ“¾
+	//Mobileãƒ‡ãƒã‚¤ã‚¹ã®å¤–éƒ¨å‡ºåŠ›ãƒ‡ãƒã‚¤ã‚¹æ¥ç¶šçŠ¶æ…‹ã‚’å–å¾—
 	UFUNCTION(BlueprintCallable)
-	bool GetAreHeadphonesPluggedIn();
+	bool GetIsExternalAudioDevicesConnected();
 
-	//IOSƒfƒoƒCƒX‚É‚Äƒ~ƒ…[ƒgƒXƒCƒbƒ`‚ª•ÏX‚³‚ê‚½‚±‚Æ‚ğŒŸo‚µ‚½‚Æ‚«A‚Ü‚½‚Í‰¹—Ê‚ª•ÏX‚³‚ê‚½‚Æ‚«‚ÉŒÄ‚Ño‚³‚ê‚é
+#if PLATFORM_IOS
+public:
+	//iOSãƒ‡ãƒã‚¤ã‚¹ã®MuteçŠ¶æ…‹ã‚’å–å¾—
+	bool GetIsIOSMuted();
+
+	//IOSãƒ‡ãƒã‚¤ã‚¹ã«ã¦ãƒŸãƒ¥ãƒ¼ãƒˆã‚¹ã‚¤ãƒƒãƒãŒå¤‰æ›´ã•ã‚ŒãŸã“ã¨ã‚’æ¤œå‡ºã—ãŸã¨ãã€ã¾ãŸã¯éŸ³é‡ãŒå¤‰æ›´ã•ã‚ŒãŸã¨ãã«å‘¼ã³å‡ºã•ã‚Œã‚‹
 	static void OnAudioStateChangedIos(bool IsMute, int Volume);
 
-	//‰¹—Ê•ÏX‚ğó‚¯æ‚éReceiver‚ğ“o˜^/‰ğœiAndroidj
-	void OnEnableAudioReceiverAndroid();
-	void OnDisableAudioReceiverAndroid();
+	//IOSãƒ‡ãƒã‚¤ã‚¹ãŒMuteã‹ã©ã†ã‹ï¼ˆéŸ³é‡å¤‰æ›´æ™‚ã«æ›´æ–°ã•ã‚Œã‚‹ï¼‰
+	//MuteSwitchãŒä»˜ã„ã¦ã„ãªã„æ©Ÿç¨®ã¯å¿…ãšfalseã«ãªã‚‹
+	static bool IsIosLastMuted;
 
-	//Android—p‚Ì‰¹—Ê•ÏXReceiver“o˜^ƒCƒxƒ“ƒg‚ğForeground/Background‚É“ü‚Á‚½‚Æ‚«‚ÌDelegate‚ÉBind
-	void BindAudioStateChangedAndroid();
-
+	//iOSãƒ‡ãƒã‚¤ã‚¹ã®å¤–éƒ¨å‡ºåŠ›ãƒ‡ãƒã‚¤ã‚¹æ¥ç¶šçŠ¶æ…‹ã‚’å–å¾—
+	bool GetIsIOSExternalAudioDevicesConnected();
 private:
 	//DelegateHandles
 	FDelegateHandle OnAudioMuteIosDelegateHandle;
+#elif PLATFORM_ANDROID
+public:
+	//Androidãƒ‡ãƒã‚¤ã‚¹ã®MuteçŠ¶æ…‹ã‚’å–å¾—
+	bool GetIsAndroidMuted();
+
+	//Androidãƒ‡ãƒã‚¤ã‚¹ã®å¤–éƒ¨å‡ºåŠ›ãƒ‡ãƒã‚¤ã‚¹æ¥ç¶šçŠ¶æ…‹ã‚’å–å¾—
+	bool GetIsAndroidExternalAudioDevicesConnected();
+
+	//éŸ³é‡å¤‰æ›´ã‚’å—ã‘å–ã‚‹Receiverã‚’ç™»éŒ²/è§£é™¤ï¼ˆAndroidï¼‰
+	void OnEnableAudioReceiverAndroid();
+	void OnDisableAudioReceiverAndroid();
+private:
+	//DelegateHandles
 	FDelegateHandle OnEnableAudioReceiverAndroidHandle;
 	FDelegateHandle OnDisableAudioReceiverAndroidHandle;
+#endif
+
 };

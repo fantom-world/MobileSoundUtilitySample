@@ -1,154 +1,47 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MobileSoundUtility.h"
 #include "OptionalMobileFeaturesBPLibrary.h"
 
-#if PLATFORM_ANDROID 
-#include "Private/OS/Android/com_epicgames_unreal_MobileSoundTestNativeAccess.h"
-#endif
-
 #if PLATFORM_IOS
 #include "IOS/IOSAppDelegate.h"
-#include "IOS/IOSAsyncTask.h"
-#import <AVFoundation/AVFoundation.h>
-#include "IOS/IOSAppDelegate.h"
-
+#include <AVFoundation/AVAudioSession.h>
 #endif
 
-
-int AMobileSoundUtility::GetMobileVolume()
-{
-#if PLATFORM_ANDROID || PLATFORM_IOS 
-	return UOptionalMobileFeaturesBPLibrary::GetVolumeState();
+#if PLATFORM_ANDROID
+#include "Android/AndroidApplication.h"
+#include "Android/AndroidJNI.h"
 #endif
-	return 0;
-}
-
-int AMobileSoundUtility::GetFinalMobileVolume()
-{
-	//Muteó‘Ô‚©‚ÂŠO•”o—ÍƒfƒoƒCƒX‚ªÚ‘±‚³‚ê‚Ä‚¢‚È‚¢‚Æ‚«‚Í‰¹‚Í‚Å‚È‚¢‚Ì‚Å0‚ð•Ô‚·
-	if (GetIsMuted() && !GetAreHeadphonesPluggedIn())
-	{
-		return 0;		
-	}
-	return GetMobileVolume();
-}
-
-
-void AMobileSoundUtility::PrintMobileVolume()
-{
-	//System‰¹—Ê‚ð•\Ž¦
-#if PLATFORM_ANDROID || PLATFORM_IOS 
-	int volume = GetMobileVolume();
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("SystemSoundVolume is %i %%"), volume));
-	
-#endif
-	//Muteó‘Ô‚ð‰Á–¡‚µ‚½System‰¹—Ê‚ð•\Ž¦
-#if PLATFORM_ANDROID || PLATFORM_IOS 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("FinalSystemSoundVolume is %i %%"), GetFinalMobileVolume()));
-#endif
-#if PLATFORM_ANDROID || PLATFORM_IOS 
-	GetIsMuted() ? GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Mute"))) : GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Not Mute")));
-	GetAreHeadphonesPluggedIn() ? GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("HeadPhone"))) : GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("InDevice")));
-#endif
-}
-
-bool AMobileSoundUtility::GetIsMuted()
-{
-#if PLATFORM_ANDROID	
-	JNIEnv* Env = FAndroidApplication::GetJavaEnv();
-	if (nullptr != Env)
-	{
-		jmethodID GetIsMutedMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_GetIsSilentMode", "()Z", false);
-		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, GetIsMutedMethod);
-	}
-#elif PLATFORM_IOS && USE_MUTE_SWITCH_DETECTION
-	return [IOSAppDelegate GetDelegate].bLastMutedState;
-#endif
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Failed GetIsMuted")));
-	return false;
-	
-}
-
-bool AMobileSoundUtility::GetAreHeadphonesPluggedIn()
-{
-#if PLATFORM_ANDROID || PLATFORM_IOS 
-	return UOptionalMobileFeaturesBPLibrary::AreHeadphonesPluggedIn();
-#endif
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Failed GetIsExternalAudioDevicesConnected")));
-	return false;
-}
-
-void AMobileSoundUtility::OnAudioStateChangedIos(bool IsMute, int Volume)
-{
-#if PLATFORM_IOS 
-	if (IsMute)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Changed: SystemSound is Muted(%i%%)"), Volume));
-	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Changed: SystemSound is On(%i%%)"), Volume));
-	}
-#endif
-}
-
-void AMobileSoundUtility::BindAudioStateChangedAndroid()
-{
-	//App‚ªForeground/Background‚É“ü‚Á‚½‚Æ‚«‚ÌƒCƒxƒ“ƒg‚ÉAudioReceiver‚ð—LŒø/–³Œø‚É‚·‚éŠÖ”‚ðBind
-	OnDisableAudioReceiverAndroidHandle = FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddLambda([this]() {
-		OnDisableAudioReceiverAndroid();
-		});
-	OnEnableAudioReceiverAndroidHandle = FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddLambda([this]() 
-		{
-		OnEnableAudioReceiverAndroid();
-		});
-}
-
-void AMobileSoundUtility::OnDisableAudioReceiverAndroid()
-{
-#if PLATFORM_ANDROID	
-	JNIEnv* Env = FAndroidApplication::GetJavaEnv();
-	if (nullptr != Env)
-	{
-		jmethodID EnableVolumeReceiverMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_EnableAudioVolumeReceiver", "(Z)V", false);
-		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, EnableVolumeReceiverMethod, false);
-	}
-#endif
-}
-
-void AMobileSoundUtility::OnEnableAudioReceiverAndroid()
-{
-#if PLATFORM_ANDROID	
-	JNIEnv* Env = FAndroidApplication::GetJavaEnv();
-	if (nullptr != Env)
-	{
-		jmethodID EnableVolumeReceiverMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_EnableAudioVolumeReceiver", "(Z)V", false);
-		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, EnableVolumeReceiverMethod, true);
-	}
-#endif
-}
-
-
 
 void AMobileSoundUtility::BeginPlay()
 {
 	Super::BeginPlay();
-	//ƒVƒXƒeƒ€‰¹—Ê•ÏXŽž‚ÌƒCƒxƒ“ƒg‚ðBind
-#if PLATFORM_ANDROID
-	BindAudioStateChangedAndroid();
-#elif PLATFORM_IOS 
+	//ã‚·ã‚¹ãƒ†ãƒ éŸ³é‡å¤‰æ›´æ™‚ã®ã‚¤ãƒ™ãƒ³ãƒˆã‚’Bind
+#if PLATFORM_IOS 
 	OnAudioMuteIosDelegateHandle = FCoreDelegates::AudioMuteDelegate.AddStatic(&AMobileSoundUtility::OnAudioStateChangedIos);
+#elif PLATFORM_ANDROID
+	//AppãŒForeground/Backgroundã«å…¥ã£ãŸã¨ãã®ã‚¤ãƒ™ãƒ³ãƒˆã«AudioReceiverã‚’æœ‰åŠ¹/ç„¡åŠ¹ã«ã™ã‚‹é–¢æ•°ã‚’Bind
+	OnDisableAudioReceiverAndroidHandle = FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddLambda([this]() {
+		OnDisableAudioReceiverAndroid();
+		});
+	OnEnableAudioReceiverAndroidHandle = FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddLambda([this]()
+		{
+			OnEnableAudioReceiverAndroid();
+		});
 #endif
-
 }
 
 void AMobileSoundUtility::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Super::EndPlay(EndPlayReason);
-	//ƒVƒXƒeƒ€‰¹—Ê•ÏXŽž‚ÌƒCƒxƒ“ƒg‚ðBind‰ðœ
-#if PLATFORM_ANDROID
+		Super::EndPlay(EndPlayReason);
+	//ã‚·ã‚¹ãƒ†ãƒ éŸ³é‡å¤‰æ›´æ™‚ã®ã‚¤ãƒ™ãƒ³ãƒˆã‚’Bindè§£é™¤
+#if PLATFORM_IOS 
+	if (OnAudioMuteIosDelegateHandle.IsValid())
+	{
+		FCoreDelegates::AudioMuteDelegate.Remove(OnAudioMuteIosDelegateHandle);
+		OnAudioMuteIosDelegateHandle.Reset();
+	}
+#elif PLATFORM_ANDROID
 	if (OnDisableAudioReceiverAndroidHandle.IsValid())
 	{
 		FCoreDelegates::ApplicationWillEnterBackgroundDelegate.Remove(OnDisableAudioReceiverAndroidHandle);
@@ -159,12 +52,142 @@ void AMobileSoundUtility::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Remove(OnEnableAudioReceiverAndroidHandle);
 		OnEnableAudioReceiverAndroidHandle.Reset();
 	}
-#elif PLATFORM_IOS 
-	if (OnAudioMuteIosDelegateHandle.IsValid())
-	{
-		FCoreDelegates::AudioMuteDelegate.Remove(OnAudioMuteIosDelegateHandle);
-		OnAudioMuteIosDelegateHandle.Reset();
-	}
-
 #endif
 }
+
+int AMobileSoundUtility::GetMobileVolume()
+{
+    #if PLATFORM_ANDROID || PLATFORM_IOS 
+	return UOptionalMobileFeaturesBPLibrary::GetVolumeState();
+	#endif
+	return 0;
+}
+
+void AMobileSoundUtility::PrintMobileVolume()
+{
+	//SysteméŸ³é‡ã‚’è¡¨ç¤º
+#if PLATFORM_ANDROID || PLATFORM_IOS 
+	int volume = GetMobileVolume();
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("SystemSoundVolume is %i %%"), volume));
+
+	//MuteçŠ¶æ…‹ã‚’åŠ å‘³ã—ãŸæœ€çµ‚çš„ãªéŸ³é‡ã‚’è¡¨ç¤º
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("FinalSystemSoundVolume is %i %%: isMuted=%i, isExternalAudioDeviceConnected=%i"), GetFinalMobileVolume(),GetIsMuted(),GetIsExternalAudioDevicesConnected()));
+#endif
+}
+
+int AMobileSoundUtility::GetFinalMobileVolume()
+{
+	//MuteçŠ¶æ…‹ã‹ã¤å¤–éƒ¨å‡ºåŠ›ãƒ‡ãƒã‚¤ã‚¹ãŒæŽ¥ç¶šã•ã‚Œã¦ã„ãªã„ã¨ãã¯éŸ³ã¯ã§ãªã„ã®ã§0ã‚’è¿”ã™
+	if (GetIsMuted() && !GetIsExternalAudioDevicesConnected())
+	{
+		return 0;		
+	}
+	return GetMobileVolume();
+}
+
+bool AMobileSoundUtility::GetIsMuted()
+{
+	#if PLATFORM_IOS
+	return GetIsIOSMuted();
+	#elif PLATFORM_ANDROID
+	return GetIsAndroidMuted();
+	#endif
+
+    return false;
+}
+
+bool AMobileSoundUtility::GetIsExternalAudioDevicesConnected()
+{
+	#if PLATFORM_IOS
+	return GetIsIOSExternalAudioDevicesConnected();
+	#elif PLATFORM_ANDROID
+	return GetIsAndroidExternalAudioDevicesConnected();
+	#endif
+    return false;
+}
+
+#if PLATFORM_IOS
+bool AMobileSoundUtility::IsIosLastMuted = false;
+
+bool AMobileSoundUtility::GetIsIOSMuted()
+{
+    return IsIosLastMuted;
+}
+
+void AMobileSoundUtility::OnAudioStateChangedIos(bool IsMute, int Volume)
+{
+	if (IsMute)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Changed: SystemSound is Muted(%i%%)"), Volume));
+	}
+	else
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Changed: SystemSound is On(%i%%)"), Volume));
+    }
+    IsIosLastMuted = IsMute;
+}
+
+bool AMobileSoundUtility::GetIsIOSExternalAudioDevicesConnected()
+{
+	bool res = true;
+	if (AVAudioSessionRouteDescription* CurrentRoute = [[AVAudioSession sharedInstance]currentRoute] )
+	{
+		for (AVAudioSessionPortDescription* Port in[CurrentRoute outputs])
+		{
+			if ([[Port portType]isEqualToString:AVAudioSessionPortBuiltInReceiver]
+				|| [[Port portType]isEqualToString:AVAudioSessionPortBuiltInSpeaker] )
+			{
+				res = false;
+			}
+		}
+	}
+	return res;
+}
+
+#elif PLATFORM_ANDROID
+
+bool AMobileSoundUtility::GetIsAndroidMuted()
+{
+    JNIEnv* Env = FAndroidApplication::GetJavaEnv();
+	if (nullptr != Env)
+	{
+		jmethodID GetIsMutedMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_GetIsSilentMode", "()Z", false);
+		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, GetIsMutedMethod);
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Failed GetIsMuted")));
+	return false;
+}
+
+bool AMobileSoundUtility::GetIsAndroidExternalAudioDevicesConnected()
+{
+	JNIEnv* Env = FAndroidApplication::GetJavaEnv();
+	if (nullptr != Env)
+	{
+		jmethodID GetIsExternalAudioDevicesConnectedMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_GetIsExternalAudioDevicesConnected", "()Z", false);
+		return FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, GetIsExternalAudioDevicesConnectedMethod);
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Failed GetIsExternalAudioDevicesConnected")));
+    return false;
+}
+
+void AMobileSoundUtility::OnEnableAudioReceiverAndroid()
+{
+	JNIEnv* Env = FAndroidApplication::GetJavaEnv();
+	if (nullptr != Env)
+	{
+		jmethodID EnableVolumeReceiverMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_EnableAudioVolumeReceiver", "(Z)V", false);
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, EnableVolumeReceiverMethod, true);
+	}
+}
+
+void AMobileSoundUtility::OnDisableAudioReceiverAndroid()
+{
+	JNIEnv* Env = FAndroidApplication::GetJavaEnv();
+	if (nullptr != Env)
+	{
+		jmethodID EnableVolumeReceiverMethod = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_EnableAudioVolumeReceiver", "(Z)V", false);
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, EnableVolumeReceiverMethod, false);
+	}
+}
+
+#endif

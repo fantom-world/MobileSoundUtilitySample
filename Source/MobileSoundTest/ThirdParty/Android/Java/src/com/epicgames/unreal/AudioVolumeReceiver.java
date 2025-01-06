@@ -12,11 +12,13 @@ import android.media.AudioManager;
 class AudioVolumeReceiver extends BroadcastReceiver 
 {
 	private static native void volumeChanged( int state );
+	private static native void ringerModeChanged( boolean isMuted );
 
 	private static IntentFilter filter;
 	private static AudioVolumeReceiver receiver;
 
 	private static String VOLUME_CHANGED_ACTION = "android.media.VOLUME_CHANGED_ACTION";
+	private static String RINGER_MODE_CHANGED_ACTION = "android.media.RINGER_MODE_CHANGED";
 	private static String STREAM_TYPE = "android.media.EXTRA_VOLUME_STREAM_TYPE";
 	private static String STREAM_VALUE = "android.media.EXTRA_VOLUME_STREAM_VALUE";
 
@@ -27,6 +29,7 @@ class AudioVolumeReceiver extends BroadcastReceiver
 		{
 			filter = new IntentFilter();
 			filter.addAction( VOLUME_CHANGED_ACTION );
+			filter.addAction( RINGER_MODE_CHANGED_ACTION );
 		}
 		if ( receiver == null ) 
 		{
@@ -52,16 +55,28 @@ class AudioVolumeReceiver extends BroadcastReceiver
 	@Override
 	public void onReceive( final Context context, final Intent intent ) 
 	{
-		GameActivity.Log.debug( "OnReceive VOLUME_CHANGED_ACTION" );
-		int stream = ( Integer )intent.getExtras().get( STREAM_TYPE );
-		int volume = ( Integer )intent.getExtras().get( STREAM_VALUE );
-		if ( stream == AudioManager.STREAM_MUSIC )
+		if(intent.getAction() == VOLUME_CHANGED_ACTION)
 		{
-			volumeChanged( volume );
-		}
-		else
+			GameActivity.Log.debug( "OnReceive VOLUME_CHANGED_ACTION" );
+			int stream = ( Integer )intent.getExtras().get( STREAM_TYPE );
+			int volume = ( Integer )intent.getExtras().get( STREAM_VALUE );
+			if ( stream == AudioManager.STREAM_MUSIC )
+			{
+				volumeChanged( volume );
+			}
+			else
+			{
+				GameActivity.Log.debug( "skipping volume change from stream " + stream );
+			}
+		}else if(intent.getAction() ==RINGER_MODE_CHANGED_ACTION)
 		{
-			GameActivity.Log.debug( "skipping volume change from stream " + stream );
+			GameActivity.Log.debug("OnReceive RINGER_MODE_CHANGED_ACTION");
+			boolean isMuted = true;
+			if (( Integer )intent.getExtras().get(AudioManager.EXTRA_RINGER_MODE) == AudioManager.RINGER_MODE_NORMAL)
+			{
+				isMuted = false;
+			}
+			ringerModeChanged(isMuted);
 		}
 	}
 }
